@@ -1,12 +1,16 @@
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-import * as pixabayApi from './js/pixabay-api.js';
-import * as render from './js/render-functions.js';
+import { getImagesByQuery } from './js/pixabay-api.js';
+import {
+  createGallery,
+  clearGallery,
+  showLoader,
+  hideLoader,
+} from './js/render-functions.js';
 
 const form = document.querySelector('.form');
 const formInput = document.querySelector('.form-input');
-const button = document.querySelector('.form-btn');
 
 form.addEventListener('submit', formSubmit);
 
@@ -16,36 +20,42 @@ function formSubmit(event) {
   const searchImage = formInput.value.trim();
 
   if (searchImage === '') {
-    return alert(`Please, fill in the field`);
+    return iziToast.warning({
+      message: 'Please, fill in the field',
+      position: 'topRight',
+      timeout: 3000,
+    });
   }
 
-  render.clearGallery();
-  render.showLoader();
+  clearGallery();
+  showLoader();
 
-  pixabayApi
-    .getImagesByQuery(searchImage)
-    .then(res => {
-      if (!res.hits.length) {
-        return iziToast.error({
+  getImagesByQuery(searchImage)
+    .then(data => {
+      const images = data.hits;
+
+      if (images.length === 0) {
+        iziToast.error({
           message:
             'Sorry, there are no images matching your search query. Please try again!',
           position: 'topRight',
           timeout: 5000,
           color: 'red',
         });
+        return;
       }
-      render.createGallery(res.hits);
-      render.hideLoader();
+      createGallery(images);
     })
-    .catch(error => {
+    .catch(error =>
       iziToast.error({
         message: `Error`,
         position: 'topRight',
         timeout: 5000,
         color: 'red',
-      });
-    })
+      })
+    )
     .finally(() => {
-      render.hideLoader();
+      hideLoader();
+      form.reset();
     });
 }
